@@ -1,19 +1,8 @@
 import ollama
 
-# Models
+# Smaller and more stable translator for your hardware
 MODEL_TRANSLATOR = "gemma2:2b"
 MODEL_MEDICAL = "alibayram/medgemma:latest"
-
-# Create/overwrite evaluation file when program starts
-with open(
-    "evaluation_results.txt",
-    "w",
-    encoding="utf-8"
-) as file:
-    file.write(
-        "CEBUANO DOCTOR EVALUATION RESULTS\n"
-        "=================================\n\n"
-    )
 
 
 def generate_llm_response(
@@ -40,7 +29,6 @@ def generate_llm_response(
 
 
 def translate_cebuano_to_english(cebuano_text: str):
-
     prompt = f"""
 Translate the following Cebuano healthcare question into English.
 
@@ -55,12 +43,11 @@ English:
     return generate_llm_response(
         MODEL_TRANSLATOR,
         prompt,
-        max_tokens=150
+        max_tokens=100
     )
 
 
 def get_medical_advice(english_query: str):
-
     prompt = f"""
 You are a medical information assistant.
 
@@ -80,12 +67,11 @@ Patient Question:
     return generate_llm_response(
         MODEL_MEDICAL,
         prompt,
-        max_tokens=700
+        max_tokens=600
     )
 
 
 def translate_english_to_cebuano(english_text: str):
-
     prompt = f"""
 Translate the following English medical response into natural Cebuano.
 
@@ -101,18 +87,8 @@ Cebuano:
     return generate_llm_response(
         MODEL_TRANSLATOR,
         prompt,
-        max_tokens=1000
+        max_tokens=800
     )
-
-
-def save_result(text: str):
-
-    with open(
-        "evaluation_results.txt",
-        "a",
-        encoding="utf-8"
-    ) as file:
-        file.write(text)
 
 
 def cebuano_doctor_pipeline(cebuano_prompt: str):
@@ -125,71 +101,44 @@ def cebuano_doctor_pipeline(cebuano_prompt: str):
             cebuano_prompt
         )
 
+        print("[1] English Translation")
+        print("-" * 50)
+        print(english_query)
+        print()
+
         if not english_query.strip():
-            english_query = "[TRANSLATION FAILED]"
+            print("[ERROR] Translation failed.")
+            return
 
-        english_response = ""
+        english_response = get_medical_advice(
+            english_query
+        )
 
-        if english_query != "[TRANSLATION FAILED]":
-            english_response = get_medical_advice(
-                english_query
-            )
+        print("[2] Medical Advice")
+        print("-" * 50)
+        print(english_response)
+        print()
 
         if not english_response.strip():
-            english_response = "[MEDICAL RESPONSE FAILED]"
+            print("[ERROR] Medical response failed.")
+            return
 
-        cebuano_response = ""
+        cebuano_response = translate_english_to_cebuano(
+            english_response
+        )
 
-        if english_response != "[MEDICAL RESPONSE FAILED]":
-            cebuano_response = translate_english_to_cebuano(
-                english_response
-            )
+        print("[3] Final Cebuano Response")
+        print("-" * 50)
+        print(cebuano_response)
+        print()
 
         if not cebuano_response.strip():
-            cebuano_response = "[CEBUANO TRANSLATION FAILED]"
+            print("[WARNING] Cebuano translation incomplete.")
 
-        result = f"""
-============================================================
-QUESTION
-============================================================
-{cebuano_prompt}
-
-[1] English Translation
---------------------------------------------------
-{english_query}
-
-[2] Medical Advice
---------------------------------------------------
-{english_response}
-
-[3] Final Cebuano Response
---------------------------------------------------
-{cebuano_response}
-
-============================================================
-
-"""
-
-        print(result)
-        save_result(result)
+        print("=" * 60)
 
     except Exception as e:
-
-        error_result = f"""
-============================================================
-QUESTION
-============================================================
-{cebuano_prompt}
-
-ERROR:
-{str(e)}
-
-============================================================
-
-"""
-
-        print(error_result)
-        save_result(error_result)
+        print(f"\nERROR: {e}\n")
 
 
 def main():
@@ -197,7 +146,7 @@ def main():
     print("==================================================")
     print("           WELCOME TO THE CEBUANO DOCTOR")
     print("==================================================")
-    print("Type 'exit' or 'quit' to end.\n")
+    print("Type 'exit' to quit.\n")
 
     while True:
 
@@ -208,10 +157,7 @@ def main():
         if not user_input:
             continue
 
-        if user_input.lower() in [
-            "exit",
-            "quit"
-        ]:
+        if user_input.lower() in ["exit", "quit"]:
             print("\nSalamat!")
             break
 
